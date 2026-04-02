@@ -2,7 +2,7 @@
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/aserper/etsy-mcp/test.yml?style=for-the-badge&label=tests)](https://github.com/aserper/etsy-mcp/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=for-the-badge)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=for-the-badge)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/ghcr.io-aserper%2Fetsy--mcp-blue?style=for-the-badge)](https://ghcr.io/aserper/etsy-mcp)
 
 ![GitHub stars](https://img.shields.io/github/stars/aserper/etsy-mcp?style=social)
