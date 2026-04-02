@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "generate-types": "openapi-typescript https://www.etsy.com/openapi/generated/oas/3.0.0.json -o src/client/types.d.ts"
+    "generate-types": "npx openapi-typescript@7 https://www.etsy.com/openapi/generated/oas/3.0.0.json -o src/client/types.d.ts"
   },
   "keywords": [
     "mcp",
@@ -45,8 +45,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "openapi-fetch": "^0.17.0",
-    "openapi-typescript": "^7.13.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   }
