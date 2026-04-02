@@ -1,11 +1,14 @@
 {
   "name": "etsy-mcp",
   "version": "1.0.0",
-  "description": "",
+  "description": "MCP server providing full access to the Etsy Open API v3 for both buyer browsing and seller shop management",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
     "etsy-mcp": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -13,11 +16,27 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "tsc --noEmit",
     "generate-types": "openapi-typescript https://www.etsy.com/openapi/generated/oas/3.0.0.json -o src/client/types.d.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "mcp",
+    "etsy",
+    "model-context-protocol",
+    "etsy-api",
+    "claude",
+    "ai"
+  ],
+  "author": "Amit Serper",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aserper/etsy-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aserper/etsy-mcp/issues"
+  },
+  "homepage": "https://github.com/aserper/etsy-mcp",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^17.4.0",

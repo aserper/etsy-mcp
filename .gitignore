@@ -1,4 +1,10 @@
 node_modules/
 dist/
 .env
+.env.*
 *.tgz
+.DS_Store
+.vscode/
+CLAUDE.md
+.claude/
+AGENTS.md
