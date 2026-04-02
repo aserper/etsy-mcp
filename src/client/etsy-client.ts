@@ -17,6 +17,7 @@ export class EtsyClient {
   private config: EtsyClientConfig;
   private lastRequestTime = 0;
   private minRequestInterval = 100; // 10 req/sec
+  private rateLimitQueue: Promise<void> = Promise.resolve();
 
   constructor(config: EtsyClientConfig) {
     this.config = config;
@@ -94,9 +95,13 @@ export class EtsyClient {
           return (await response.json()) as T;
         }
 
-        if (response.status === 401 && attempt === 0) {
-          await this.config.onTokenExpired();
-          continue;
+        if (response.status === 401) {
+          if (attempt === 0) {
+            await this.config.onTokenExpired();
+            continue;
+          }
+          const errorBody = await response.json().catch(() => null);
+          throw new EtsyApiError(401, errorBody, "Authentication failed after token refresh");
         }
 
         if (response.status === 429) {
@@ -124,12 +129,15 @@ export class EtsyClient {
     throw lastError ?? new Error("Request failed after retries");
   }
 
-  private async rateLimit(): Promise<void> {
-    const now = Date.now();
-    const elapsed = now - this.lastRequestTime;
-    if (elapsed < this.minRequestInterval) {
-      await new Promise((r) => setTimeout(r, this.minRequestInterval - elapsed));
-    }
-    this.lastRequestTime = Date.now();
+  private rateLimit(): Promise<void> {
+    this.rateLimitQueue = this.rateLimitQueue.then(async () => {
+      const now = Date.now();
+      const elapsed = now - this.lastRequestTime;
+      if (elapsed < this.minRequestInterval) {
+        await new Promise((r) => setTimeout(r, this.minRequestInterval - elapsed));
+      }
+      this.lastRequestTime = Date.now();
+    });
+    return this.rateLimitQueue;
   }
 }

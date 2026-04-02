@@ -36,6 +36,22 @@ export function registerImagesTools(server: McpServer, client: EtsyClient): void
     return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
   });
 
+  server.registerTool("upload_listing_video", {
+    description: "Upload a video to a listing from a local file path (max 15 seconds)",
+    inputSchema: {
+      shop_id: z.number().describe("The shop ID"),
+      listing_id: z.number().describe("The listing ID"),
+      video_path: z.string().describe("Local file path to the video"),
+    },
+  }, async (args) => {
+    const videoBuffer = await readFile(args.video_path);
+    const blob = new Blob([videoBuffer]);
+    const formData = new FormData();
+    formData.append("video", blob, args.video_path.split("/").pop() ?? "video.mp4");
+    const data = await client.uploadFile(`/shops/${args.shop_id}/listings/${args.listing_id}/videos`, formData);
+    return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+  });
+
   server.registerTool("delete_listing_image", {
     description: "Delete an image from a listing",
     inputSchema: {

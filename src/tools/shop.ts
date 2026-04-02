@@ -58,6 +58,12 @@ export function registerShopTools(server: McpServer, client: EtsyClient): void {
       title: z.string().optional().describe("Section title (required for create/update)"),
     },
   }, async (args) => {
+    if ((args.action === "create" || args.action === "update") && !args.title) {
+      return { content: [{ type: "text" as const, text: "Error: 'title' is required for create/update actions." }], isError: true };
+    }
+    if ((args.action === "update" || args.action === "delete") && !args.shop_section_id) {
+      return { content: [{ type: "text" as const, text: "Error: 'shop_section_id' is required for update/delete actions." }], isError: true };
+    }
     let data: unknown;
     switch (args.action) {
       case "create":

@@ -19,6 +19,7 @@ import { registerPaymentsTools } from "./tools/payments.js";
 import { registerReturnPoliciesTools } from "./tools/return-policies.js";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const ALL_SCOPES = [
   "address_r", "address_w", "billing_r", "cart_r", "cart_w",
@@ -92,9 +93,12 @@ export function createEtsyMcpServer(config: ServerConfig): McpServer {
 }
 
 // CLI entry point - only run when executed directly
-const isDirectRun = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+const currentFile = fileURLToPath(import.meta.url);
+const isDirectRun = process.argv[1] && currentFile === process.argv[1];
 
 if (isDirectRun) {
+  // Load .env file when running as CLI
+  await import("dotenv/config");
   const apiKey = process.env.ETSY_API_KEY;
   const sharedSecret = process.env.ETSY_SHARED_SECRET;
 

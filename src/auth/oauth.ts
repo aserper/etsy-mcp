@@ -121,41 +121,56 @@ export class OAuthClient {
 
   async startLocalAuthFlow(): Promise<{ code: string; redirectUri: string; codeVerifier: string }> {
     return new Promise((resolve, reject) => {
+      // Generate PKCE verifier and state before starting the server
+      // to avoid race conditions with the callback handler
+      let expectedState: string;
+      let codeVerifier: string;
+
       const server = createServer(
         (req: IncomingMessage, res: ServerResponse) => {
           const url = new URL(req.url!, `http://localhost`);
           const code = url.searchParams.get("code");
           const returnedState = url.searchParams.get("state");
 
-          if (code) {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(
-              "<html><body><h1>Authorization successful!</h1><p>You can close this window.</p></body></html>"
-            );
-            server.close();
-            resolve({
-              code,
-              redirectUri: `http://localhost:${(server.address() as any).port}/callback`,
-              codeVerifier: (server as any).__codeVerifier,
-            });
-          } else {
+          if (!code) {
             res.writeHead(400, { "Content-Type": "text/html" });
             res.end("<html><body><h1>Authorization failed</h1></body></html>");
             server.close();
             reject(new Error(`OAuth callback missing code. State: ${returnedState}`));
+            return;
           }
+
+          if (returnedState !== expectedState) {
+            res.writeHead(403, { "Content-Type": "text/html" });
+            res.end("<html><body><h1>State mismatch — possible CSRF attack</h1></body></html>");
+            server.close();
+            reject(new Error("OAuth state mismatch: possible CSRF attack"));
+            return;
+          }
+
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(
+            "<html><body><h1>Authorization successful!</h1><p>You can close this window.</p></body></html>"
+          );
+          server.close();
+          resolve({
+            code,
+            redirectUri: `http://localhost:${(server.address() as any).port}/callback`,
+            codeVerifier,
+          });
         }
       );
 
       server.listen(0, async () => {
         const port = (server.address() as any).port;
         const redirectUri = `http://localhost:${port}/callback`;
-        const { url, codeVerifier } = await this.buildAuthorizationUrl(redirectUri);
-        (server as any).__codeVerifier = codeVerifier;
+        const authData = await this.buildAuthorizationUrl(redirectUri);
+        codeVerifier = authData.codeVerifier;
+        expectedState = authData.state;
 
         const { default: open } = await import("open");
-        await open(url);
-        console.error(`\nOpen this URL to authorize:\n${url}\n`);
+        await open(authData.url);
+        console.error(`\nOpen this URL to authorize:\n${authData.url}\n`);
       });
 
       setTimeout(() => {

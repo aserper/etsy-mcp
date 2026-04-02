@@ -21,7 +21,7 @@ export class TokenStore {
 
   async save(tokens: StoredTokens): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, JSON.stringify(tokens, null, 2), "utf-8");
+    await writeFile(this.filePath, JSON.stringify(tokens, null, 2), { encoding: "utf-8", mode: 0o600 });
   }
 
   async clear(): Promise<void> {

@@ -22,6 +22,9 @@ export function registerReturnPoliciesTools(server: McpServer, client: EtsyClien
       return_deadline: z.number().optional().describe("Return deadline in days"),
     },
   }, async (args) => {
+    if ((args.action === "update" || args.action === "delete") && !args.return_policy_id) {
+      return { content: [{ type: "text" as const, text: "Error: 'return_policy_id' is required for update/delete actions." }], isError: true };
+    }
     const basePath = `/shops/${args.shop_id}/policies/return`;
     let data: unknown;
     switch (args.action) {
