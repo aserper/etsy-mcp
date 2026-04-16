@@ -161,7 +161,7 @@ export class OAuthClient {
         }
       );
 
-      server.listen(0, async () => {
+      server.listen(3003, async () => {
         const port = (server.address() as any).port;
         const redirectUri = `http://localhost:${port}/callback`;
         const authData = await this.buildAuthorizationUrl(redirectUri);
