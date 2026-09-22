@@ -4,6 +4,7 @@ import type { StoredTokens } from "./token-store.js";
 
 const ETSY_AUTH_URL = "https://www.etsy.com/oauth/connect";
 const ETSY_TOKEN_URL = "https://api.etsy.com/v3/public/oauth/token";
+const OAUTH_CALLBACK_PORT = 3003;
 
 export interface OAuthConfig {
   apiKey: string;
@@ -125,6 +126,7 @@ export class OAuthClient {
       // to avoid race conditions with the callback handler
       let expectedState: string;
       let codeVerifier: string;
+      let redirectUri: string;
 
       const server = createServer(
         (req: IncomingMessage, res: ServerResponse) => {
@@ -155,15 +157,15 @@ export class OAuthClient {
           server.close();
           resolve({
             code,
-            redirectUri: `http://localhost:${(server.address() as any).port}/callback`,
+            redirectUri,
             codeVerifier,
           });
         }
       );
 
-      server.listen(0, async () => {
+      server.listen(OAUTH_CALLBACK_PORT, async () => {
         const port = (server.address() as any).port;
-        const redirectUri = `http://localhost:${port}/callback`;
+        redirectUri = `http://localhost:${port}/callback`;
         const authData = await this.buildAuthorizationUrl(redirectUri);
         codeVerifier = authData.codeVerifier;
         expectedState = authData.state;
