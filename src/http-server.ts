@@ -1,36 +1,36 @@
 import "dotenv/config";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
-import type { Request, Response, NextFunction } from "express";
+import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
+import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { createEtsyMcpServer } from "./index.js";
+import { SingleUserOAuthProvider } from "./auth/mcp-oauth-provider.js";
 
 const apiKey = process.env.ETSY_API_KEY;
 const sharedSecret = process.env.ETSY_SHARED_SECRET;
 const mcpAuthToken = process.env.MCP_AUTH_TOKEN;
 const port = Number(process.env.PORT ?? 8080);
+const publicUrl = process.env.PUBLIC_URL;
 
-if (!apiKey || !sharedSecret || !mcpAuthToken) {
-  console.error("Error: ETSY_API_KEY, ETSY_SHARED_SECRET, and MCP_AUTH_TOKEN are required.");
+if (!apiKey || !sharedSecret || !mcpAuthToken || !publicUrl) {
+  console.error("Error: ETSY_API_KEY, ETSY_SHARED_SECRET, MCP_AUTH_TOKEN, and PUBLIC_URL are required.");
   process.exit(1);
 }
 
-function requireBearerToken(req: Request, res: Response, next: NextFunction): void {
-  const header = req.header("authorization") ?? "";
-  const [scheme, token] = header.split(" ");
-  if (scheme !== "Bearer" || token !== mcpAuthToken) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  next();
-}
+const provider = new SingleUserOAuthProvider(mcpAuthToken);
+const issuerUrl = new URL(publicUrl);
 
 const app = createMcpExpressApp({ host: "0.0.0.0", allowedHosts: undefined });
+
+app.use(mcpAuthRouter({ provider, issuerUrl }));
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-app.post("/mcp", requireBearerToken, async (req, res) => {
+const requireAuth = requireBearerAuth({ verifier: provider });
+
+app.post("/mcp", requireAuth, async (req, res) => {
   try {
     const server = createEtsyMcpServer({
       apiKey,
@@ -52,11 +52,11 @@ app.post("/mcp", requireBearerToken, async (req, res) => {
   }
 });
 
-app.get("/mcp", requireBearerToken, (_req, res) => {
+app.get("/mcp", requireAuth, (_req, res) => {
   res.writeHead(405).end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }));
 });
 
-app.delete("/mcp", requireBearerToken, (_req, res) => {
+app.delete("/mcp", requireAuth, (_req, res) => {
   res.writeHead(405).end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }));
 });
 
