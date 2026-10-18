@@ -16,4 +16,4 @@ COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
 
-ENTRYPOINT ["node", "dist/index.js"]
+ENTRYPOINT ["node", "dist/http-server.js"]

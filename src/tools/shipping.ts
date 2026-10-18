@@ -48,25 +48,34 @@ export function registerShippingTools(server: McpServer, client: EtsyClient): vo
   });
 
   server.registerTool("manage_shipping_destinations", {
-    description: "Create or delete shipping destinations on a profile",
+    description: "Create, update or delete shipping destinations on a profile. Use update (not delete + create) to change a rate, e.g. primary_cost 0 for free shipping.",
     inputSchema: {
       shop_id: z.number().describe("The shop ID"),
       shipping_profile_id: z.number().describe("The shipping profile ID"),
-      action: z.enum(["create", "delete"]).describe("Action to perform"),
-      shipping_profile_destination_id: z.number().optional().describe("Destination ID (for delete)"),
-      primary_cost: z.number().optional().describe("Primary cost (for create)"),
-      secondary_cost: z.number().optional().describe("Secondary cost (for create)"),
-      destination_country_iso: z.string().optional().describe("Destination country ISO (for create)"),
-      destination_region: z.string().optional().describe("Destination region (for create)"),
+      action: z.enum(["create", "update", "delete"]).describe("Action to perform"),
+      shipping_profile_destination_id: z.number().optional().describe("Destination ID (for update/delete)"),
+      primary_cost: z.number().optional().describe("Primary cost (for create/update)"),
+      secondary_cost: z.number().optional().describe("Secondary cost (for create/update)"),
+      destination_country_iso: z.string().optional().describe("Destination country ISO (for create/update)"),
+      destination_region: z.string().optional().describe("Destination region (for create/update)"),
+      shipping_carrier_id: z.number().optional().describe("Carrier ID (0 = Other); required with mail_class if no delivery days"),
+      mail_class: z.string().optional().describe("Carrier mail class"),
+      min_delivery_days: z.number().optional().describe("Min delivery days (required when no carrier/mail_class)"),
+      max_delivery_days: z.number().optional().describe("Max delivery days (required when no carrier/mail_class)"),
     },
   }, async (args) => {
     const basePath = `/shops/${args.shop_id}/shipping-profiles/${args.shipping_profile_id}/destinations`;
     let data: unknown;
+    const fields = {
+      primary_cost: args.primary_cost, secondary_cost: args.secondary_cost,
+      destination_country_iso: args.destination_country_iso, destination_region: args.destination_region,
+      shipping_carrier_id: args.shipping_carrier_id, mail_class: args.mail_class,
+      min_delivery_days: args.min_delivery_days, max_delivery_days: args.max_delivery_days,
+    };
     if (args.action === "create") {
-      data = await client.post(basePath, {
-        primary_cost: args.primary_cost, secondary_cost: args.secondary_cost,
-        destination_country_iso: args.destination_country_iso, destination_region: args.destination_region,
-      });
+      data = await client.post(basePath, fields);
+    } else if (args.action === "update") {
+      data = await client.put(`${basePath}/${args.shipping_profile_destination_id}`, fields);
     } else {
       await client.delete(`${basePath}/${args.shipping_profile_destination_id}`);
       data = { deleted: true, id: args.shipping_profile_destination_id };
