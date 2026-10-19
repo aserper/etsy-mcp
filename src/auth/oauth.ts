@@ -125,6 +125,9 @@ export class OAuthClient {
       // to avoid race conditions with the callback handler
       let expectedState: string;
       let codeVerifier: string;
+      // Remember the redirect URI chosen in listen(): server.address() returns null
+      // after server.close(), so it must not be read in the callback handler.
+      let redirectUri: string;
 
       const server = createServer(
         (req: IncomingMessage, res: ServerResponse) => {
@@ -153,24 +156,30 @@ export class OAuthClient {
             "<html><body><h1>Authorization successful!</h1><p>You can close this window.</p></body></html>"
           );
           server.close();
-          resolve({
-            code,
-            redirectUri: `http://localhost:${(server.address() as any).port}/callback`,
-            codeVerifier,
-          });
+          resolve({ code, redirectUri, codeVerifier });
         }
       );
 
-      server.listen(0, async () => {
-        const port = (server.address() as any).port;
-        const redirectUri = `http://localhost:${port}/callback`;
-        const authData = await this.buildAuthorizationUrl(redirectUri);
-        codeVerifier = authData.codeVerifier;
-        expectedState = authData.state;
+      server.on("error", (err) => {
+        reject(err);
+      });
 
-        const { default: open } = await import("open");
-        await open(authData.url);
-        console.error(`\nOpen this URL to authorize:\n${authData.url}\n`);
+      server.listen(0, async () => {
+        try {
+          const port = (server.address() as any).port;
+          redirectUri = `http://localhost:${port}/callback`;
+          const authData = await this.buildAuthorizationUrl(redirectUri);
+          codeVerifier = authData.codeVerifier;
+          expectedState = authData.state;
+
+          console.error(`\nOpen this URL to authorize:\n${authData.url}\n`);
+          const { default: open } = await import("open");
+          await open(authData.url);
+        } catch (err) {
+          // An unhandled rejection here would take down the whole MCP process.
+          server.close();
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
       });
 
       setTimeout(() => {
